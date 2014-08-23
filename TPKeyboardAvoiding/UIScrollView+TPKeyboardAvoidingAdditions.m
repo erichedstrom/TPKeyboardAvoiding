@@ -212,7 +212,9 @@ static const int kStateKey;
     
     CGRect rect = CGRectZero;
     for ( UIView *view in self.subviews ) {
+      if (view.alpha > 0) {
         rect = CGRectUnion(rect, view.frame);
+      }
     }
     rect.size.height += kCalculatedContentPadding;
     
