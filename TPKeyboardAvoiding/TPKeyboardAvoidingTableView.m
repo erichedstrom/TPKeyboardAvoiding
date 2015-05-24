@@ -15,7 +15,7 @@
 #pragma mark - Setup/Teardown
 
 - (void)setup {
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(TPKeyboardAvoiding_keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(TPKeyboardAvoiding_keyboardWillShow:) name:UIKeyboardWillChangeFrameNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(TPKeyboardAvoiding_keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(scrollToActiveTextField) name:UITextViewTextDidBeginEditingNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(scrollToActiveTextField) name:UITextFieldTextDidBeginEditingNotification object:nil];
@@ -50,6 +50,11 @@
 }
 
 -(void)setContentSize:(CGSize)contentSize {
+	if (CGSizeEqualToSize(contentSize, self.contentSize)) {
+		// Prevent triggering contentSize when it's already the same
+		// this cause table view to scroll to top on contentInset changes
+		return;
+	}
     [super setContentSize:contentSize];
     [self TPKeyboardAvoiding_updateContentInset];
 }
