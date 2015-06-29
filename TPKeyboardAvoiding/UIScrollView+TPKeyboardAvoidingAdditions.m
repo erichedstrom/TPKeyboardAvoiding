@@ -52,10 +52,6 @@ static const int kStateKey;
     
     UIView *firstResponder = [self TPKeyboardAvoiding_findFirstResponderBeneathView:self];
     
-    if ( !firstResponder ) {
-        return;
-    }
-    
     state.keyboardRect = keyboardRect;
     
     if ( !state.keyboardVisible ) {
