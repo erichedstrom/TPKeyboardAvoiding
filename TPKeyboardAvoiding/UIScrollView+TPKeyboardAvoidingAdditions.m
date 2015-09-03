@@ -195,16 +195,14 @@ static const int kStateKey;
     // Search recursively for input view below/to right of priorTextField
     CGRect priorFrame = [self convertRect:priorView.frame fromView:priorView.superview];
     CGRect candidateFrame = *bestCandidate ? [self convertRect:(*bestCandidate).frame fromView:(*bestCandidate).superview] : CGRectZero;
-    CGFloat bestCandidateHeuristic = -sqrt(candidateFrame.origin.x*candidateFrame.origin.x + candidateFrame.origin.y*candidateFrame.origin.y)
-                                        + (fabs(CGRectGetMinY(candidateFrame) - CGRectGetMinY(priorFrame)) < FLT_EPSILON ? 1e6 : 0);
+    CGFloat bestCandidateHeuristic = [self TPKeyboardAvoiding_nextInputViewHeuristicForViewFrame:candidateFrame];
     
     for ( UIView *childView in view.subviews ) {
         if ( [self TPKeyboardAvoiding_viewIsValidKeyViewCandidate:childView] ) {
             CGRect frame = [self convertRect:childView.frame fromView:view];
             
-            // Use a heuristic to evaluate candidates: prefer elements closest to the top left, and on the same line
-            CGFloat heuristic = -sqrt(frame.origin.x*frame.origin.x + frame.origin.y*frame.origin.y)
-                                    + (fabs(CGRectGetMinY(frame) - CGRectGetMinY(priorFrame)) < FLT_EPSILON ? 1e6 : 0);
+            // Use a heuristic to evaluate candidates
+            CGFloat heuristic = [self TPKeyboardAvoiding_nextInputViewHeuristicForViewFrame:frame];
             
             // Find views beneath, or to the right. For those views that match, choose the view closest to the top left
             if ( childView != priorView
@@ -219,6 +217,11 @@ static const int kStateKey;
             [self TPKeyboardAvoiding_findNextInputViewAfterView:priorView beneathView:childView bestCandidate:bestCandidate];
         }
     }
+}
+
+- (CGFloat)TPKeyboardAvoiding_nextInputViewHeuristicForViewFrame:(CGRect)frame {
+    return  (-frame.origin.y * 1000.0) // Prefer elements closest to top (most important)
+          + (-frame.origin.x);         // Prefer elements closest to left
 }
 
 - (BOOL)TPKeyboardAvoiding_viewIsValidKeyViewCandidate:(UIView *)view {
@@ -296,8 +299,9 @@ static const int kStateKey;
     
     // Constrain the new contentOffset so we can't scroll past the bottom. Note that we don't take the bottom
     // inset into account, as this is manipulated to make space for the keyboard.
-    if ( offset > (contentSize.height - viewAreaHeight) ) {
-        offset = contentSize.height - viewAreaHeight;
+    CGFloat maxOffset = contentSize.height - viewAreaHeight - self.contentInset.top;
+    if (offset > maxOffset) {
+        offset = maxOffset;
     }
     
     // Constrain the new contentOffset so we can't scroll past the top, taking contentInsets into account
