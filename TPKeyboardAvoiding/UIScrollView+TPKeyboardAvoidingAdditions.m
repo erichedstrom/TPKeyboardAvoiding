@@ -53,8 +53,6 @@ static const int kStateKey;
         return;
     }
     
-    UIView *firstResponder = [self TPKeyboardAvoiding_findFirstResponderBeneathView:self];
-    
     state.keyboardRect = keyboardRect;
     
     if ( !state.keyboardVisible ) {
@@ -83,11 +81,14 @@ static const int kStateKey;
     
     self.contentInset = [self TPKeyboardAvoiding_contentInsetForKeyboard];
     
-    CGFloat viewableHeight = self.bounds.size.height - self.contentInset.top - self.contentInset.bottom;
-    [self setContentOffset:CGPointMake(self.contentOffset.x,
-                                       [self TPKeyboardAvoiding_idealOffsetForView:firstResponder
-                                                             withViewingAreaHeight:viewableHeight])
-                  animated:NO];
+    UIView *firstResponder = [self TPKeyboardAvoiding_findFirstResponderBeneathView:self];
+    if ( firstResponder ) {
+        CGFloat viewableHeight = self.bounds.size.height - self.contentInset.top - self.contentInset.bottom;
+        [self setContentOffset:CGPointMake(self.contentOffset.x,
+                                           [self TPKeyboardAvoiding_idealOffsetForView:firstResponder
+                                                                 withViewingAreaHeight:viewableHeight])
+                      animated:NO];
+    }
     
     self.scrollIndicatorInsets = self.contentInset;
     [self layoutIfNeeded];
@@ -173,15 +174,23 @@ static const int kStateKey;
     
     if ( !state.keyboardVisible ) return;
     
+    // Ignore any keyboard notification that occur while we scroll
+    //  (seems to be an iOS 9 bug that causes jumping text in UITextField)
+    state.ignoringNotifications = YES;
+    
     CGFloat visibleSpace = self.bounds.size.height - self.contentInset.top - self.contentInset.bottom;
     
-    CGPoint idealOffset = CGPointMake(self.contentOffset.x, [self TPKeyboardAvoiding_idealOffsetForView:[self TPKeyboardAvoiding_findFirstResponderBeneathView:self]
-                                                               withViewingAreaHeight:visibleSpace]);
+    CGPoint idealOffset
+        = CGPointMake(self.contentOffset.x,
+                      [self TPKeyboardAvoiding_idealOffsetForView:[self TPKeyboardAvoiding_findFirstResponderBeneathView:self]
+                                            withViewingAreaHeight:visibleSpace]);
 
     // Ordinarily we'd use -setContentOffset:animated:YES here, but it interferes with UIScrollView
     // behavior which automatically ensures that the first responder is within its bounds
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [self setContentOffset:idealOffset animated:YES];
+        
+        state.ignoringNotifications = NO;
     });
 }
 
